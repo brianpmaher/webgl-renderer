@@ -21,6 +21,9 @@ function main() {
   const gl = canvas.getContext('webgl2')!;
   if (gl === null) alert('Your browser does not support WebGL');
 
+  updateCanvasSize(gl);
+  window.addEventListener('resize', () => updateCanvasSize(gl));
+
   const vsSource = `
     attribute vec4 aVertexPosition;
 
@@ -56,6 +59,19 @@ function main() {
     requestAnimationFrame(update);
     drawScene(gl, programInfo, buffers);
   })();
+}
+
+function updateCanvasSize(gl: WebGL2RenderingContext) {
+  const { canvas } = gl;
+  const { clientWidth, clientHeight } = canvas;
+  const devicePixelRatio = window.devicePixelRatio;
+  const width = Math.round(clientWidth * devicePixelRatio);
+  const height = Math.round(clientHeight * devicePixelRatio);
+
+  canvas.width = width;
+  canvas.height = height;
+
+  gl.viewport(0, 0, width, height);
 }
 
 function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, buffers: BufferData) {
