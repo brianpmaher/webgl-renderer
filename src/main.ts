@@ -1,9 +1,12 @@
 import { mat4 } from 'gl-matrix';
 
+const glFloatSizeBytes = 4;
+
 interface ShaderProgramInfo {
   program: WebGLProgram;
   attribLocations: {
-    vertexPositions: number;
+    vertexPosition: number;
+    vertexColor: number;
   };
   uniformLocations: {
     projectionMatrix: WebGLUniformLocation;
@@ -13,6 +16,7 @@ interface ShaderProgramInfo {
 
 interface BufferData {
   position: WebGLBuffer;
+  color: WebGLBuffer;
 }
 
 function main() {
@@ -26,18 +30,24 @@ function main() {
 
   const vsSource = `
     attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
 
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
+    varying lowp vec4 vColor;
+
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vColor = aVertexColor;
     }
   `;
 
   const fsSource = `
+    varying lowp vec4 vColor;
+
     void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+      gl_FragColor = vColor;
     }
   `;
 
@@ -45,7 +55,8 @@ function main() {
   const programInfo: ShaderProgramInfo = {
     program: shaderProgram,
     attribLocations: {
-      vertexPositions: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+      vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+      vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix')!,
@@ -74,6 +85,8 @@ function updateCanvasSize(gl: WebGL2RenderingContext) {
   gl.viewport(0, 0, width, height);
 }
 
+const piOverFour = Math.PI / 4;
+
 function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, buffers: BufferData) {
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
   gl.clearDepth(1.0); // Clear everything
@@ -84,7 +97,7 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 
   const projectionMatrix = mat4.create();
   {
-    const fieldOfView = (45 * Math.PI) / 180;
+    const fieldOfView = piOverFour;
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     const zNear = 0.1;
     const zFar = 100.0;
@@ -96,18 +109,30 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 
   // Now move the drawing position a bit to where we want to start drawing the square.
 
-  mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0]);
+  mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -2.0]);
 
   // Tell WebGL how to pull out the positions from the position buffer into the vertexPosition attribute.
   {
     const numComponents = 2;
     const type = gl.FLOAT;
     const normalize = false;
-    const stride = 0; // 0 = use type and numComponents above
+    const stride = glFloatSizeBytes * numComponents;
     const offset = 0; // How many bytes inside the buffer to start from
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-    gl.vertexAttribPointer(programInfo.attribLocations.vertexPositions, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPositions);
+    gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+  }
+
+  // Tell WebGL how to pull out the colors from the color buffer into the vertexColor attribute.
+  {
+    const numComponents = 4;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = glFloatSizeBytes * numComponents;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
   }
 
   gl.useProgram(programInfo.program);
@@ -116,22 +141,35 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 
   {
     const offset = 0;
-    const vertexCount = 4;
+    const vertexCount = 3;
     gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
   }
 }
 
 function initBuffers(gl: WebGL2RenderingContext): BufferData {
+  // prettier-ignore
+  const positions = [
+    -0.5, -0.5,
+     0.5, -0.5,
+     0.0,  0.5,
+  ]
   const positionBuffer = gl.createBuffer();
-
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-  const positions = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
-
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+  // prettier-ignore
+  const colors = [
+    1.0, 0.0, 0.0, 1.0, // red
+    0.0, 1.0, 0.0, 1.0, // green
+    0.0, 0.0, 1.0, 1.0, // blue
+  ];
+  const colorBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   return {
     position: positionBuffer!,
+    color: colorBuffer!,
   };
 }
 
