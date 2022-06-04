@@ -1,4 +1,6 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, ReadonlyVec3 } from 'gl-matrix';
+
+const piOverFour = Math.PI / 4;
 
 const glFloatSizeBytes = 4;
 
@@ -66,9 +68,13 @@ function main() {
 
   const buffers = initBuffers(gl);
 
-  (function update() {
-    requestAnimationFrame(update);
-    drawScene(gl, programInfo, buffers);
+  let then = 0;
+  (function render(now: DOMHighResTimeStamp = 0) {
+    now *= 0.001; // ms to s
+    const deltaTime = now - then;
+    then = now;
+    drawScene(gl, programInfo, buffers, deltaTime);
+    requestAnimationFrame(render);
   })();
 }
 
@@ -85,9 +91,9 @@ function updateCanvasSize(gl: WebGL2RenderingContext) {
   gl.viewport(0, 0, width, height);
 }
 
-const piOverFour = Math.PI / 4;
+let rotation = 0.0;
 
-function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, buffers: BufferData) {
+function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, buffers: BufferData, deltaTime: number) {
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
   gl.clearDepth(1.0); // Clear everything
   gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -109,11 +115,14 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 
   // Now move the drawing position a bit to where we want to start drawing the square.
 
-  mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -2.0]);
+  mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
+  const rotationAxis = [0, 0, 1] as ReadonlyVec3;
+  rotation += deltaTime;
+  mat4.rotate(modelViewMatrix, modelViewMatrix, rotation, rotationAxis);
 
   // Tell WebGL how to pull out the positions from the position buffer into the vertexPosition attribute.
   {
-    const numComponents = 2;
+    const numComponents = 3;
     const type = gl.FLOAT;
     const normalize = false;
     const stride = glFloatSizeBytes * numComponents;
@@ -141,7 +150,7 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 
   {
     const offset = 0;
-    const vertexCount = 3;
+    const vertexCount = 4;
     gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
   }
 }
@@ -149,9 +158,10 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
 function initBuffers(gl: WebGL2RenderingContext): BufferData {
   // prettier-ignore
   const positions = [
-    -0.5, -0.5,
-     0.5, -0.5,
-     0.0,  0.5,
+     1.0,  1.0, 0.0,
+    -1.0,  1.0, 0.0,
+     1.0, -1.0, 0.0,
+    -1.0, -1.0, 0.0,
   ]
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -159,6 +169,7 @@ function initBuffers(gl: WebGL2RenderingContext): BufferData {
 
   // prettier-ignore
   const colors = [
+    1.0, 1.0, 1.0, 1.0, // white
     1.0, 0.0, 0.0, 1.0, // red
     0.0, 1.0, 0.0, 1.0, // green
     0.0, 0.0, 1.0, 1.0, // blue
