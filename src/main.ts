@@ -1,4 +1,5 @@
 import { mat4 } from 'gl-matrix';
+import Stats from 'stats.js';
 
 const piOverFour = Math.PI / 4;
 
@@ -8,17 +9,18 @@ interface ShaderProgramInfo {
   program: WebGLProgram;
   attribLocations: {
     vertexPosition: number;
-    vertexColor: number;
+    textureCoord: number;
   };
   uniformLocations: {
     projectionMatrix: WebGLUniformLocation;
     modelViewMatrix: WebGLUniformLocation;
+    uSampler: WebGLUniformLocation;
   };
 }
 
 interface BufferData {
   position: WebGLBuffer;
-  color: WebGLBuffer;
+  textureCoord: WebGLBuffer;
   indices: WebGLBuffer;
 }
 
@@ -26,31 +28,33 @@ function main() {
   const canvas = document.getElementById('gl-canvas') as HTMLCanvasElement;
 
   const gl = canvas.getContext('webgl2')!;
-  if (gl === null) alert('Your browser does not support WebGL');
+  if (gl === null) throw new Error('Your browser does not support WebGL');
 
   updateCanvasSize(gl);
   window.addEventListener('resize', () => updateCanvasSize(gl));
 
   const vsSource = `
     attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
+    attribute vec2 aTextureCoord;
 
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-    varying lowp vec4 vColor;
+    varying highp vec2 vTextureCoord;
 
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vColor = aVertexColor;
+      vTextureCoord = aTextureCoord;
     }
   `;
 
   const fsSource = `
-    varying lowp vec4 vColor;
+    varying highp vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
 
     void main() {
-      gl_FragColor = vColor;
+      gl_FragColor = texture2D(uSampler, vTextureCoord);
     }
   `;
 
@@ -59,22 +63,36 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-      vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
+      textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix')!,
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')!,
+      uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')!,
     },
   };
 
   const buffers = initBuffers(gl);
 
+  const texture = loadTexture(gl, '../textures/crate/crate.diffuse.png');
+
+  // Stats setup
+  const stats = new Stats();
+  const FPS = 0;
+  stats.showPanel(FPS);
+  document.body.appendChild(stats.dom);
+
   let then = 0;
   (function render(now: DOMHighResTimeStamp = 0) {
+    stats.begin();
+
     now *= 0.001; // ms to s
     const deltaTime = now - then;
     then = now;
-    drawScene(gl, programInfo, buffers, deltaTime);
+    drawScene(gl, programInfo, buffers, texture, deltaTime);
+
+    stats.end();
+
     requestAnimationFrame(render);
   })();
 }
@@ -94,7 +112,13 @@ function updateCanvasSize(gl: WebGL2RenderingContext) {
 
 let rotation = 0.0;
 
-function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, buffers: BufferData, deltaTime: number) {
+function drawScene(
+  gl: WebGL2RenderingContext,
+  programInfo: ShaderProgramInfo,
+  buffers: BufferData,
+  texture: WebGLTexture,
+  deltaTime: number
+) {
   gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
   gl.clearDepth(1.0); // Clear everything
   gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -127,22 +151,22 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
     const type = gl.FLOAT;
     const normalize = false;
     const stride = glFloatSizeBytes * numComponents;
-    const offset = 0; // How many bytes inside the buffer to start from
+    const offset = 0;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
     gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
   }
 
-  // Tell WebGL how to pull out the colors from the color buffer into the vertexColor attribute.
+  // Tell WebGL how to pull out the texture coordinates from buffer
   {
-    const numComponents = 4;
+    const numComponents = 2;
     const type = gl.FLOAT;
     const normalize = false;
     const stride = glFloatSizeBytes * numComponents;
     const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-    gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
+    gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, numComponents, type, normalize, stride, offset);
+    gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
   }
 
   // Tell WebGL which indices to use to index the verices
@@ -153,6 +177,12 @@ function drawScene(gl: WebGL2RenderingContext, programInfo: ShaderProgramInfo, b
   gl.useProgram(programInfo.program);
   gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
   gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+  {
+    gl.activeTexture(gl.TEXTURE0); // Tell WebGL we want to affect texture unit 0.
+    gl.bindTexture(gl.TEXTURE_2D, texture); // Bind the texture to texture unit 0.
+    gl.uniform1i(programInfo.uniformLocations.uSampler, 0); // Tell the shader we bound texture to texture unit 0.
+  }
 
   {
     const offset = 0;
@@ -212,28 +242,6 @@ function initBuffers(gl: WebGL2RenderingContext): BufferData {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
   // prettier-ignore
-  const faceColors = [
-    [1.0,  1.0,  1.0,  1.0],    // Front face: white
-    [1.0,  0.0,  0.0,  1.0],    // Back face: red
-    [0.0,  1.0,  0.0,  1.0],    // Top face: green
-    [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
-    [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-    [1.0,  0.0,  1.0,  1.0],    // Left face: purple
-  ];
-
-  // Convert the array of colors into a table for all the vertices.
-  let colors = [] as Array<number>;
-  for (let i = 0; i < faceColors.length; i++) {
-    const faceColor = faceColors[i];
-    // Repeat each color four times for four vertices of each face.
-    colors = colors.concat(faceColor, faceColor, faceColor, faceColor);
-  }
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-
-  // prettier-ignore
   const indices = [
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
@@ -246,9 +254,51 @@ function initBuffers(gl: WebGL2RenderingContext): BufferData {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
+  // prettier-ignore
+  const textureCoordinates = [
+    // Front
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+
+    // Back
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+
+    // Top
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+
+    // Bottom
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+
+    // Right
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+
+    // Left
+    0.0,  0.0,
+    1.0,  0.0,
+    1.0,  1.0,
+    0.0,  1.0,
+  ];
+  const textureCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+
   return {
     position: positionBuffer!,
-    color: colorBuffer!,
+    textureCoord: textureCoordBuffer!,
     indices: indexBuffer!,
   };
 }
@@ -262,10 +312,8 @@ function createShaderProgram(gl: WebGL2RenderingContext, vsSource: string, fsSou
   gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
 
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-    return null;
-  }
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+    throw new Error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
 
   return shaderProgram;
 }
@@ -277,12 +325,41 @@ function compileShader(gl: WebGL2RenderingContext, type: number, source: string)
   gl.compileShader(shader);
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+    const info = gl.getShaderInfoLog(shader);
     gl.deleteShader(shader);
-    return null;
+    throw new Error('An error occurred compiling the shaders: ' + info);
   }
 
   return shader;
+}
+
+function loadTexture(gl: WebGL2RenderingContext, url: string): WebGLTexture {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  /* Because images have to be downloaded over the internet, they might take a 
+     moment until they are ready. Until then, put a single pixel int he texture 
+     so we can use it immediately. Whent he image has finished downloading, we'll 
+     update the texture with the contents of the image. */
+  const level = 0;
+  const internalFormat = gl.RGBA;
+  const width = 1;
+  const height = 1;
+  const border = 0;
+  const srcFormat = gl.RGBA;
+  const srcType = gl.UNSIGNED_BYTE;
+  const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
+
+  const image = new Image();
+  image.onload = () => {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
+  };
+  image.src = url;
+
+  return texture!;
 }
 
 main();
