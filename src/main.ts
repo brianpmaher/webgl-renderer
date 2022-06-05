@@ -9,10 +9,12 @@ interface ShaderProgramInfo {
   program: WebGLProgram;
   attribLocations: {
     vertexPosition: number;
+    vertexNormal: number;
     textureCoord: number;
   };
   uniformLocations: {
     projectionMatrix: WebGLUniformLocation;
+    normalMatrix: WebGLUniformLocation;
     modelViewMatrix: WebGLUniformLocation;
     uSampler: WebGLUniformLocation;
   };
@@ -20,6 +22,7 @@ interface ShaderProgramInfo {
 
 interface BufferData {
   position: WebGLBuffer;
+  normal: WebGLBuffer;
   textureCoord: WebGLBuffer;
   indices: WebGLBuffer;
 }
@@ -35,26 +38,44 @@ function main() {
 
   const vsSource = `
     attribute vec4 aVertexPosition;
+    attribute vec3 aVertexNormal;
     attribute vec2 aTextureCoord;
 
     uniform mat4 uModelViewMatrix;
+    uniform mat4 uNormalMatrix;
     uniform mat4 uProjectionMatrix;
 
     varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
 
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
       vTextureCoord = aTextureCoord;
+
+      // Apply lighting effect
+
+      highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+      highp vec3 directionalLightColor = vec3(1, 1, 1);
+      highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+
+      highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+
+      vLighting = ambientLight + (directionalLightColor * directional);
     }
   `;
 
   const fsSource = `
     varying highp vec2 vTextureCoord;
+    varying highp vec3 vLighting;
 
     uniform sampler2D uSampler;
 
     void main() {
-      gl_FragColor = texture2D(uSampler, vTextureCoord);
+      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
     }
   `;
 
@@ -63,10 +84,12 @@ function main() {
     program: shaderProgram,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+      vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
       textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix')!,
+      normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix')!,
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')!,
       uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')!,
     },
@@ -174,8 +197,25 @@ function drawScene(
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
   }
 
+  // Tell WebGL how to pull out the normals from the normal buffer into the vertexNormal attribute.
+  {
+    const numComponents = 3;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = glFloatSizeBytes * numComponents;
+    const offset = 0;
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+    gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, type, normalize, stride, offset);
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+  }
+
+  const normalMatrix = mat4.create();
+  mat4.invert(normalMatrix, modelViewMatrix);
+  mat4.transpose(normalMatrix, normalMatrix);
+
   gl.useProgram(programInfo.program);
   gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+  gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
   gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 
   {
@@ -200,7 +240,7 @@ function drawScene(
 
 function initBuffers(gl: WebGL2RenderingContext): BufferData {
   // prettier-ignore
-  const positions = [
+  const positions = new Float32Array([
     // Front face
     -1.0, -1.0,  1.0,
     1.0, -1.0,  1.0,
@@ -236,26 +276,68 @@ function initBuffers(gl: WebGL2RenderingContext): BufferData {
     -1.0, -1.0,  1.0,
     -1.0,  1.0,  1.0,
     -1.0,  1.0, -1.0,
-  ];
+  ]);
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
   // prettier-ignore
-  const indices = [
+  const vertexNormals = new Float32Array([
+    // Front
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+
+    // Back
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+
+    // Top
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+
+    // Bottom
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+
+    // Right
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+
+    // Left
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0
+  ]);
+  const normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertexNormals, gl.STATIC_DRAW);
+
+  // prettier-ignore
+  const indices = new Uint16Array([
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
     8,  9,  10,     8,  10, 11,   // top
     12, 13, 14,     12, 14, 15,   // bottom
     16, 17, 18,     16, 18, 19,   // right
     20, 21, 22,     20, 22, 23,   // left
-  ]
+  ]);
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
   // prettier-ignore
-  const textureCoordinates = [
+  const textureCoordinates = new Float32Array([
     // Front
     0.0,  0.0,
     1.0,  0.0,
@@ -291,13 +373,14 @@ function initBuffers(gl: WebGL2RenderingContext): BufferData {
     1.0,  0.0,
     1.0,  1.0,
     0.0,  1.0,
-  ];
+  ]);
   const textureCoordBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, textureCoordinates, gl.STATIC_DRAW);
 
   return {
     position: positionBuffer!,
+    normal: normalBuffer!,
     textureCoord: textureCoordBuffer!,
     indices: indexBuffer!,
   };
