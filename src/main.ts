@@ -1,7 +1,18 @@
-import { createWorld } from './ecs';
+import { CAMERA_COMPONENT, createCameraComponent } from './components/camera-component';
+import { createRenderComponent, RENDER_COMPONENT } from './components/render-component';
+import { createEntity, createWorld, runAllSystems } from './ecs';
+import { initRenderSystem, renderSystem } from './systems/render-system';
 
-function main(): void {
-  const world = createWorld();
-}
+initRenderSystem('gl-canvas');
 
-main();
+const world = createWorld([renderSystem]);
+
+createEntity(world, 'camera', {
+  [CAMERA_COMPONENT]: createCameraComponent(),
+});
+
+createEntity(world, 'cube', {
+  [RENDER_COMPONENT]: createRenderComponent(),
+});
+
+runAllSystems(world);

@@ -59,6 +59,17 @@ export function loadTexture(gl: WebGL2RenderingContext, url: string): WebGLTextu
   return texture!;
 }
 
+export function bindArrayBuffer(
+  gl: WebGL2RenderingContext,
+  buffer: WebGLBuffer,
+  bufferAttribLocation: number,
+  numComponents: number
+): void {
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.vertexAttribPointer(bufferAttribLocation, numComponents, gl.FLOAT, false, GL_FLOAT_SIZE_BYTES * numComponents, 0);
+  gl.enableVertexAttribArray(bufferAttribLocation);
+}
+
 function updateCanvasSize(gl: WebGL2RenderingContext): void {
   const { canvas } = gl;
   const { clientWidth, clientHeight } = canvas;

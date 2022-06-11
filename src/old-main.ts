@@ -1,7 +1,7 @@
 import { mat4 } from 'gl-matrix';
 import { createCubeGeometry, Geometry } from './geometry';
 import { MS_TO_S, PI_OVER_FOUR } from './math';
-import { GL_FLOAT_SIZE_BYTES, initGl, loadTexture } from './renderer';
+import { bindArrayBuffer, initGl, loadTexture } from './renderer';
 import { loadShader, Shader } from './shader';
 
 async function main(): Promise<void> {
@@ -51,51 +51,15 @@ function renderScene(
 
   // Now move the drawing position a bit to where we want to start drawing the square.
   mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
-
   rotation += deltaTime;
   mat4.rotate(modelViewMatrix, modelViewMatrix, rotation, [0, 0, 1]);
   mat4.rotate(modelViewMatrix, modelViewMatrix, rotation * 0.7, [0, 1, 0]);
 
-  // Tell WebGL how to pull out the positions from the position buffer into the vertexPosition attribute.
-  {
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = GL_FLOAT_SIZE_BYTES * numComponents;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-    gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-  }
+  bindArrayBuffer(gl, buffers.position, programInfo.attribLocations.vertexPosition, 3);
+  bindArrayBuffer(gl, buffers.textureCoord!, programInfo.attribLocations.textureCoord, 2);
+  bindArrayBuffer(gl, buffers.normal, programInfo.attribLocations.vertexNormal, 3);
 
-  // Tell WebGL how to pull out the texture coordinates from buffer
-  {
-    const numComponents = 2;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = GL_FLOAT_SIZE_BYTES * numComponents;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord!);
-    gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-  }
-
-  // Tell WebGL which indices to use to index the verices
-  {
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-  }
-
-  // Tell WebGL how to pull out the normals from the normal buffer into the vertexNormal attribute.
-  {
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = GL_FLOAT_SIZE_BYTES * numComponents;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-    gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, type, normalize, stride, offset);
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-  }
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
 
   const normalMatrix = mat4.create();
   mat4.invert(normalMatrix, modelViewMatrix);
@@ -113,16 +77,8 @@ function renderScene(
   }
 
   {
-    const offset = 0;
-    const vertexCount = 4;
-    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
-  }
-
-  {
     const vertexCount = 36;
-    const type = gl.UNSIGNED_SHORT;
-    const offset = 0;
-    gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+    gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
   }
 }
 
