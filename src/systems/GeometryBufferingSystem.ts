@@ -1,15 +1,15 @@
 import { RenderStateComponent } from '../components';
+import GeometryBufferedComponent from '../components/GeometryBufferedComponent';
 import GeometryComponent, { GEOMETRY } from '../components/GeometryComponent';
 import { UNBUFFERED_GEOMETRY } from '../components/UnbufferedGeometryComponent';
 import { Entity, System, World } from '../ecs';
 
 export default class GeometryBufferingSystem extends System {
-  private _unbufferedEntities: Entity[] = [];
-  private _unbufferedEntitiesQuery: string[] = [UNBUFFERED_GEOMETRY, GEOMETRY];
+  private readonly _unbufferedEntities: Entity[] = [];
+  private readonly _unbufferedEntitiesQuery: string[] = [UNBUFFERED_GEOMETRY, GEOMETRY];
 
   public Run(world: World): void {
-    const { _unbufferedEntities: entities } = this;
-    world.QueryAll(this._unbufferedEntitiesQuery, entities);
+    const entities = world.QueryAll(this._unbufferedEntitiesQuery, this._unbufferedEntities);
 
     const { gl } = world.components.renderState as RenderStateComponent;
 
@@ -20,6 +20,7 @@ export default class GeometryBufferingSystem extends System {
       const geometry = entity.components.geometry as GeometryComponent;
       geometry.InitBuffers(gl);
       entity.RemoveComponent(unbufferedGeometry);
+      entity.AddComponent(new GeometryBufferedComponent());
     }
   }
 }
