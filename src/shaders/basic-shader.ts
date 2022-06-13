@@ -1,4 +1,4 @@
-import { Shader } from '../shader';
+import { initShaderProgram, Shader } from '../shader';
 
 export interface BasicShader extends Shader {
   attribLocations: {
@@ -10,7 +10,7 @@ export interface BasicShader extends Shader {
   };
 }
 
-export const basicVertexShader = `
+const vertSource = `
 attribute vec4 vertexPosition;
 uniform mat4 modelViewProjection;
 
@@ -19,10 +19,25 @@ void main() {
 }
 `;
 
-export const basicFragmentShader = `
-uniform vec4 color;
+const fragSource = `
+uniform lowp vec4 color;
 
 void main() {
   gl_FragColor = color;
 }
 `;
+
+export function loadBasicShader(gl: WebGL2RenderingContext): BasicShader {
+  const program = initShaderProgram(gl, vertSource, fragSource);
+
+  return {
+    program,
+    attribLocations: {
+      vertexPosition: gl.getAttribLocation(program, 'vertexPosition'),
+    },
+    uniformLocations: {
+      modelViewProjection: gl.getUniformLocation(program, 'modelViewProjection')!,
+      color: gl.getUniformLocation(program, 'color')!,
+    },
+  };
+}

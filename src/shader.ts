@@ -1,5 +1,3 @@
-import { basicFragmentShader, BasicShader, basicVertexShader } from './shaders/basic-shader';
-
 export interface Shader {
   program: WebGLProgram;
   attribLocations: {
@@ -10,27 +8,7 @@ export interface Shader {
   };
 }
 
-export interface ShaderMap {
-  basicShader: BasicShader;
-}
-
-export function loadShaders(gl: WebGL2RenderingContext): ShaderMap {
-  const basicShaderProgram = initShaderProgram(gl, basicVertexShader, basicFragmentShader);
-  const basicShader: BasicShader = {
-    program: basicShaderProgram,
-    attribLocations: {
-      vertexPosition: gl.getAttribLocation(basicShaderProgram, 'vertexPosition'),
-    },
-    uniformLocations: {
-      modelViewProjection: gl.getUniformLocation(basicShaderProgram, 'modelViewProjection')!,
-      color: gl.getUniformLocation(basicShaderProgram, 'color')!,
-    },
-  };
-
-  return { basicShader };
-}
-
-function initShaderProgram(
+export function initShaderProgram(
   gl: WebGL2RenderingContext,
   vertSource: string,
   fragSource: string
