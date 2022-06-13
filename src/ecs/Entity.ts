@@ -12,7 +12,7 @@ export default class Entity {
   }
 
   public AddComponent(component: Component): Entity {
-    this.components[component.name] = component;
+    this.components[component.GetName()] = component;
     return this;
   }
 }

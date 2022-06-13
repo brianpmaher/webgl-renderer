@@ -1,11 +1,11 @@
 import GeometryComponent from './GeometryComponent';
 
 export default class CubeGeometryComponent extends GeometryComponent {
-  protected readonly _name: string = 'cubeGeometry';
   public vertices: Float32Array;
   public numVertexComponents: number;
+  public vertexBuffer: WebGLBuffer | null;
   public indices: Uint16Array;
-  public buffer!: WebGLBuffer;
+  public indexBuffer: WebGLBuffer | null;
 
   public constructor() {
     super();
@@ -51,6 +51,8 @@ export default class CubeGeometryComponent extends GeometryComponent {
 
     this.numVertexComponents = 3;
 
+    this.vertexBuffer = null;
+
     // prettier-ignore
     this.indices = new Uint16Array([
       0,  1,  2,      0,  2,  3,    // front
@@ -60,10 +62,7 @@ export default class CubeGeometryComponent extends GeometryComponent {
       16, 17, 18,     16, 18, 19,   // right
       20, 21, 22,     20, 22, 23,   // left
     ]);
-  }
 
-  public InitBuffers(gl: WebGL2RenderingContext): void {
-    this._InitArrayBuffer(gl, this.vertices);
-    this._InitIndexBuffer(gl, this.indices);
+    this.indexBuffer = null;
   }
 }

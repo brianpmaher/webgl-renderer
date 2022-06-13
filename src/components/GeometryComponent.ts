@@ -1,12 +1,19 @@
 import { Component } from '../ecs';
 
 export default abstract class GeometryComponent extends Component {
+  protected readonly _name: string = 'geometry';
   public abstract vertices: Float32Array;
   public abstract numVertexComponents: number;
+  public abstract vertexBuffer: WebGLBuffer | null;
   public abstract indices: Uint16Array;
-  public abstract buffer: WebGLBuffer;
+  public abstract indexBuffer: WebGLBuffer | null;
+  public isBuffersInitialized: boolean = false;
 
-  public abstract InitBuffers(gl: WebGL2RenderingContext): void;
+  public InitBuffers(gl: WebGL2RenderingContext): void {
+    this.vertexBuffer = this._InitArrayBuffer(gl, this.vertices);
+    this.indexBuffer = this._InitIndexBuffer(gl, this.indices);
+    this.isBuffersInitialized = true;
+  }
 
   protected _InitArrayBuffer(gl: WebGL2RenderingContext, bufferData: Float32Array): WebGLBuffer {
     return this._InitBuffer(gl, gl.ARRAY_BUFFER, bufferData);

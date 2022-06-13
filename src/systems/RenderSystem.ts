@@ -1,5 +1,4 @@
-import RenderStateComponent from '../components/RenderStateComponent';
-import ShaderMapComponent from '../components/ShaderMapComponent';
+import { RenderStateComponent, ShaderMapComponent } from '../components';
 import { Entity, System, World } from '../ecs';
 import { ComponentMap } from '../ECS/Component';
 import BasicShader from '../shaders/basic/BasicShader';
