@@ -39,10 +39,48 @@ export default class World {
   public Run(): void {
     const run_ = () => {
       requestAnimationFrame(run_);
-      const { entities, systems, components } = this;
+      const { systems } = this;
       const numSystems = systems.length;
-      for (let i = 0; i < numSystems; i++) systems[i].Run(entities, components);
+      // prettier-ignore
+      for (let i = 0; i < numSystems; i++)
+        systems[i].Run(this);
     };
     run_();
+  }
+
+  public QueryAny(query: string[], out: Entity[]): Entity[] {
+    out.length = 0; // clear without deleting array.
+    const { entities } = this;
+    const numEntities = entities.length;
+    const numQueries = query.length;
+
+    for (let i = 0; i < numEntities; i++) {
+      const entity = entities[i];
+      for (let j = 0; j < numQueries; j++) {
+        if (entity.components[query[j]]) {
+          out.push(entity);
+          break;
+        }
+      }
+    }
+
+    return out;
+  }
+
+  public QueryAll(query: string[], out: Entity[]): Entity[] {
+    out.length = 0; // clear without deleting array.
+    const { entities } = this;
+    const numEntities = entities.length;
+    const numQueries = query.length;
+
+    for (let i = 0; i < numEntities; i++) {
+      const entity = entities[i];
+      for (let j = 0; j < numQueries; j++) {
+        if (!entity.components[query[j]]) break;
+        else if (j === numQueries - 1) out.push(entity);
+      }
+    }
+
+    return out;
   }
 }

@@ -1,6 +1,5 @@
 import { RenderStateComponent, ShaderMapComponent } from '../components';
-import { Entity, System, World } from '../ecs';
-import { ComponentMap } from '../ECS/Component';
+import { System, World } from '../ecs';
 import BasicShader from '../shaders/basic/BasicShader';
 
 export default class RenderSystem extends System {
@@ -21,8 +20,8 @@ export default class RenderSystem extends System {
     );
   }
 
-  public Run(_entities: Entity[], worldComponents: ComponentMap): void {
-    const { gl } = worldComponents.renderState as RenderStateComponent;
+  public Run(world: World): void {
+    const { gl } = world.components.renderState as RenderStateComponent;
 
     gl.clear(gl.COLOR_BUFFER_BIT);
   }

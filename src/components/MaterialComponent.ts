@@ -4,11 +4,5 @@ import { Shader } from '../renderer';
 export default abstract class MaterialComponent extends Component {
   protected _name: string = 'material';
   public abstract shaderType: string;
-  public shader: Shader | null;
-  public isShaderInitialized: boolean = false;
-
-  public constructor() {
-    super();
-    this.shader = null;
-  }
+  public shader: Shader | null = null;
 }

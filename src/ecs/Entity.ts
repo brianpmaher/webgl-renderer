@@ -12,7 +12,14 @@ export default class Entity {
   }
 
   public AddComponent(component: Component): Entity {
+    component.Bind(this);
     this.components[component.GetName()] = component;
     return this;
+  }
+
+  public RemoveComponent(component: Component): void {
+    const componentName = component.GetName();
+    this.components[componentName].Unbind(this);
+    delete this.components[componentName];
   }
 }

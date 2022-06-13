@@ -1,18 +1,18 @@
 import { Component } from '../ecs';
 
+export const GEOMETRY = 'geometry';
+
 export default abstract class GeometryComponent extends Component {
-  protected readonly _name: string = 'geometry';
+  protected readonly _name: string = GEOMETRY;
   public abstract vertices: Float32Array;
   public abstract numVertexComponents: number;
-  public abstract vertexBuffer: WebGLBuffer | null;
+  public abstract vertexBuffer: WebGLBuffer;
   public abstract indices: Uint16Array;
-  public abstract indexBuffer: WebGLBuffer | null;
-  public isBuffersInitialized: boolean = false;
+  public abstract indexBuffer: WebGLBuffer;
 
   public InitBuffers(gl: WebGL2RenderingContext): void {
     this.vertexBuffer = this._InitArrayBuffer(gl, this.vertices);
     this.indexBuffer = this._InitIndexBuffer(gl, this.indices);
-    this.isBuffersInitialized = true;
   }
 
   protected _InitArrayBuffer(gl: WebGL2RenderingContext, bufferData: Float32Array): WebGLBuffer {
@@ -32,7 +32,7 @@ export default abstract class GeometryComponent extends Component {
 
     if (buffer === null) throw new Error('Unable to create buffer');
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bindBuffer(type, buffer);
     gl.bufferData(type, bufferData, gl.STATIC_DRAW);
 
     return buffer;
