@@ -1,3 +1,5 @@
+import { mat4 } from 'gl-matrix';
+import GeometryComponent from '../components/GeometryComponent';
 import { httpGetText } from '../utils/http';
 
 export interface ShaderMap {
@@ -19,6 +21,13 @@ export default abstract class Shader {
   public abstract readonly uniformLocations: UniformLocationMap;
 
   public abstract Compile(gl: WebGL2RenderingContext): Promise<void>;
+
+  public abstract Bind(
+    gl: WebGL2RenderingContext,
+    geometry: GeometryComponent,
+    modelViewMatrix: mat4,
+    projectionMatrix: mat4
+  ): void;
 
   protected async _CompileProgram(
     gl: WebGL2RenderingContext,

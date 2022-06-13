@@ -1,3 +1,5 @@
+import { mat4 } from 'gl-matrix';
+import GeometryComponent from '../../components/GeometryComponent';
 import { Shader } from '../../renderer';
 import { AttribLocationMap, UniformLocationMap } from '../../renderer/Shader';
 
@@ -23,5 +25,29 @@ export default class BasicShader extends Shader {
       ),
       color: this._GetUniformLocation(gl, program, 'uColor'),
     };
+  }
+
+  public Bind(
+    gl: WebGL2RenderingContext,
+    geometry: GeometryComponent,
+    modelViewMatrix: mat4,
+    projectionMatrix: mat4
+  ): void {
+    gl.bindBuffer(gl.ARRAY_BUFFER, geometry.vertexBuffer);
+    gl.vertexAttribPointer(
+      this.attribLocations.vertexPosition,
+      geometry.numVertexComponents,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, geometry.indexBuffer);
+
+    gl.useProgram(this.program);
+
+    gl.uniformMatrix4fv(this.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+    gl.uniformMatrix4fv(this.uniformLocations.projectionMatrix, false, projectionMatrix);
   }
 }
