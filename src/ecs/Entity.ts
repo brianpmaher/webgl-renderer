@@ -1,20 +1,18 @@
-import { toFirstLetterLowerCase } from '../utils/string';
-import Component from './Component';
+import Component, { ComponentMap } from './Component';
 
 export default class Entity {
-  id: number;
-  name: string;
-  components: { [componentName: string]: Component };
+  public readonly id: number;
+  public name: string;
+  public components: ComponentMap;
 
-  constructor(id: number, name: string) {
+  public constructor(id: number, name: string) {
     this.id = id;
     this.name = name;
     this.components = {};
   }
 
-  addComponent(component: Component): Entity {
-    const componentName = toFirstLetterLowerCase(component.constructor.name);
-    this.components[componentName] = component;
+  public AddComponent(component: Component): Entity {
+    this.components[component.name] = component;
     return this;
   }
 }

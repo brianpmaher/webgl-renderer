@@ -1,37 +1,47 @@
+import Component, { ComponentMap } from './Component';
 import Entity from './Entity';
-import System from './System';
+import System, { SystemStatic } from './System';
 
 export default class World {
-  name: string;
-  entities: Entity[];
-  systems: System[];
-  private nextEntityId: number;
+  public readonly name: string;
+  public readonly entities: Entity[];
+  public readonly systems: System[];
+  public readonly components: ComponentMap;
+  private _nextEntityId: number;
 
-  constructor(name: string) {
+  public constructor(name: string) {
     this.name = name;
     this.entities = [];
     this.systems = [];
-    this.nextEntityId = 1;
+    this.components = {};
+    this._nextEntityId = 1;
   }
 
-  createEntity(name: string): Entity {
-    const entity = new Entity(this.nextEntityId, name);
-    this.nextEntityId++;
+  public CreateEntity(name: string): Entity {
+    const entity = new Entity(this._nextEntityId, name);
+    this._nextEntityId++;
     this.entities.push(entity);
     return entity;
   }
 
-  addSystem(system: System): World {
+  public AddSystem(SystemClass: SystemStatic): World {
+    const system = new SystemClass();
+    system.Init(this);
     this.systems.push(system);
     return this;
   }
 
-  run(): void {
+  public AddComponent(component: Component): World {
+    this.components[component.GetName()] = component;
+    return this;
+  }
+
+  public Run(): void {
     const run_ = () => {
       requestAnimationFrame(run_);
-      const { systems } = this;
+      const { entities, systems, components } = this;
       const numSystems = systems.length;
-      for (let i = 0; i < numSystems; i++) systems[i].run(this.entities);
+      for (let i = 0; i < numSystems; i++) systems[i].Run(entities, components);
     };
     run_();
   }

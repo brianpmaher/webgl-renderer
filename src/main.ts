@@ -4,11 +4,11 @@ import { RenderSystem } from './systems';
 function main(): void {
   const world = new World('WebGL Playground');
 
-  world.addSystem(new RenderSystem());
+  world.AddSystem(RenderSystem);
 
-  world.createEntity('Cube');
+  world.CreateEntity('Cube');
 
-  world.run();
+  world.Run();
 }
 
 main();
