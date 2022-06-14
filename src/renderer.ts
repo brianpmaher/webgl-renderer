@@ -1,4 +1,4 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import { Camera, updateAspectRatio, updateProjectionMatrix } from './camera';
 import { BasicMaterial } from './materials/basic-material';
 import { Scene } from './scene';
@@ -63,6 +63,9 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
 
     // TODO: Move to mesh or something
     const modelMatrix = mat4.create();
+    mat4.translate(modelMatrix, modelMatrix, vec3.fromValues(2, 0, 0));
+    mat4.rotate(modelMatrix, modelMatrix, Math.PI / 4, vec3.fromValues(1, 1, 0));
+    mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(1, 1, 2));
 
     // TODO: Cleanup garbage collection invocation here and move to camera
     mat4.identity(viewMatrix);
