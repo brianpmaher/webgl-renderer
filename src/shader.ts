@@ -1,3 +1,5 @@
+import { httpGetText } from './http';
+
 export interface Shader {
   program: WebGLProgram;
   attribLocations: {
@@ -8,13 +10,13 @@ export interface Shader {
   };
 }
 
-export function initShaderProgram(
+export async function initShaderProgram(
   gl: WebGL2RenderingContext,
-  vertSource: string,
-  fragSource: string
-): WebGLProgram {
-  const vertShader = loadShader(gl, gl.VERTEX_SHADER, vertSource);
-  const fragShader = loadShader(gl, gl.FRAGMENT_SHADER, fragSource);
+  shaderName: string
+): Promise<WebGLProgram> {
+  const { vertSource, fragSource } = await fetchShaderSource(shaderName);
+  const vertShader = compileShader(gl, gl.VERTEX_SHADER, vertSource);
+  const fragShader = compileShader(gl, gl.FRAGMENT_SHADER, fragSource);
   const shaderProgram = gl.createProgram()!;
 
   if (shaderProgram === null) {
@@ -39,7 +41,17 @@ export function initShaderProgram(
   return shaderProgram;
 }
 
-function loadShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+async function fetchShaderSource(
+  shaderName: string
+): Promise<{ vertSource: string; fragSource: string }> {
+  const [vertSource, fragSource] = await Promise.all([
+    httpGetText(`src/shaders/${shaderName}/${shaderName}.vert.glsl`),
+    httpGetText(`src/shaders/${shaderName}/${shaderName}.frag.glsl`),
+  ]);
+  return { vertSource, fragSource };
+}
+
+function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
 
   if (shader === null) throw new Error('Failed to create shader');

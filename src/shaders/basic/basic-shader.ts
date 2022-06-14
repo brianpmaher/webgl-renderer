@@ -1,4 +1,6 @@
-import { initShaderProgram, Shader } from '../shader';
+import { initShaderProgram, Shader } from '../../shader';
+
+export const BASIC_SHADER_NAME = 'basic';
 
 export interface BasicShader extends Shader {
   attribLocations: {
@@ -10,25 +12,8 @@ export interface BasicShader extends Shader {
   };
 }
 
-const vertSource = `
-attribute vec4 vertexPosition;
-uniform mat4 modelViewProjection;
-
-void main() {
-  gl_Position = modelViewProjection * vertexPosition;
-}
-`;
-
-const fragSource = `
-uniform lowp vec4 color;
-
-void main() {
-  gl_FragColor = color;
-}
-`;
-
-export function loadBasicShader(gl: WebGL2RenderingContext): BasicShader {
-  const program = initShaderProgram(gl, vertSource, fragSource);
+export async function loadBasicShader(gl: WebGL2RenderingContext): Promise<BasicShader> {
+  const program = await initShaderProgram(gl, BASIC_SHADER_NAME);
 
   return {
     program,

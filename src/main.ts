@@ -1,14 +1,25 @@
-import { initGl } from './gl';
-import { loadBasicShader } from './shaders/basic-shader';
+import { vec4 } from 'gl-matrix';
+import { createCamera } from './camera';
+import { createCubeGeometry } from './geometries/cube-geometry';
+import { createBasicMaterial } from './materials/basic-material';
+import { createMesh } from './mesh';
+import { createRenderer, renderScene } from './renderer';
+import { addMesh as addToScene, createScene } from './scene';
 
-function main(): void {
-  const canvas = document.querySelector<HTMLCanvasElement>('#gl-canvas')!;
+async function main(): Promise<void> {
+  const renderer = await createRenderer('#gl-canvas');
+  const camera = createCamera(renderer);
+  const scene = createScene();
 
-  const gl = initGl(canvas);
+  const cubeGeometry = createCubeGeometry(renderer);
+  const basicMaterial = createBasicMaterial(renderer, vec4.fromValues(1.0, 0.0, 0.0, 1.0));
+  const basicCubeMesh = createMesh(cubeGeometry, basicMaterial);
+  addToScene(scene, basicCubeMesh);
 
-  const shader = loadBasicShader(gl);
-
-  // TODO: Load cube buffer and store transform and move cube around
+  (function renderLoop() {
+    requestAnimationFrame(renderLoop);
+    renderScene(renderer, camera, scene);
+  })();
 }
 
 main();
