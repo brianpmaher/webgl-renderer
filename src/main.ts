@@ -16,8 +16,16 @@ async function main(): Promise<void> {
   const basicCubeMesh = createMesh(cubeGeometry, basicMaterial);
   addToScene(scene, basicCubeMesh);
 
+  // TODO: Figure out how to rotate the cube
+
+  let then = Date.now();
   (function renderLoop() {
     requestAnimationFrame(renderLoop);
+
+    const now = Date.now();
+    const delta = (now - then) * 0.001;
+    then = now;
+
     renderScene(renderer, camera, scene);
   })();
 }

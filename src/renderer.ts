@@ -1,6 +1,5 @@
 import { mat4, vec3 } from 'gl-matrix';
 import { Camera, updateAspectRatio, updateProjectionMatrix } from './camera';
-import { BasicMaterial } from './materials/basic-material';
 import { Scene } from './scene';
 import { Shader } from './shader';
 import { BASIC_SHADER_NAME, loadBasicShader } from './shaders/basic/basic-shader';
@@ -58,7 +57,8 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
 
   for (let i = 0; i < numMeshes; i++) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const { geometry, material } = meshes[i];
+    const mesh = meshes[i];
+    const { geometry, material } = mesh;
     const { shader } = material;
 
     // TODO: Move to mesh or something
@@ -71,14 +71,11 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
     mat4.identity(viewMatrix);
     mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -6.0]);
 
-    material.bindBuffers(geometry);
     gl.useProgram(shader.program);
 
+    material.bindBuffers(renderer, camera, mesh);
+
     // TODO: Move these to a material bind function
-    mat4.mul(mvpMatrix, viewMatrix, modelMatrix);
-    mat4.mul(mvpMatrix, projectionMatrix, mvpMatrix);
-    gl.uniformMatrix4fv(material.shader.uniformLocations.modelViewProjection, false, mvpMatrix);
-    gl.uniform4fv(material.shader.uniformLocations.color, (material as BasicMaterial).color);
 
     gl.drawElements(gl.TRIANGLES, geometry.vertexCount, gl.UNSIGNED_SHORT, 0);
   }

@@ -1,9 +1,19 @@
-import { Geometry } from './geometry';
+import { mat4, vec3 } from 'gl-matrix';
+import { Camera } from './camera';
+import { Mesh } from './mesh';
+import { Renderer } from './renderer';
 import { Shader } from './shader';
+
+export interface Transform {
+  modelMatrix: mat4;
+  translation: vec3;
+  rotation: vec3;
+  scale: vec3;
+}
 
 export interface Material {
   shader: Shader;
-  bindBuffers: (geometry: Geometry) => void;
+  bindBuffers: (renderer: Renderer, camera: Camera, mesh: Mesh) => void;
 }
 
 export function bindAttribBuffer(
