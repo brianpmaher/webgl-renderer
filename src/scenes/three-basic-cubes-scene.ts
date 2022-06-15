@@ -1,37 +1,19 @@
 import { vec3, vec4 } from 'gl-matrix';
-import { Camera, createCamera } from '../camera';
+import { createCamera, setupOrbitalControls, updateOrbitalControls } from '../camera';
 import { createCubeGeometry } from '../geometries/cube-geometry';
 import { createBasicMaterial } from '../materials/basic-material';
 import { createMesh } from '../mesh';
-import { createRenderer, Renderer, renderScene } from '../renderer';
-import { addMesh, createScene, Scene } from '../scene';
+import { createRenderer, renderScene } from '../renderer';
+import { addMesh, createScene } from '../scene';
 import { createTimer, tick } from '../timer';
-
-export interface ThreeBasicCubeSceneData {
-  deltaRotation: vec3;
-  cubeRotation1: vec3;
-  cubeRotation2: vec3;
-  cubeRotation3: vec3;
-}
 
 export async function createThreeBasicCubesScene(canvasSelector: string): Promise<void> {
   const renderer = await createRenderer(canvasSelector);
   const camera = createCamera(renderer);
+  setupOrbitalControls(camera);
   vec3.set(camera.transform.position, 0, 0, -15);
   const scene = createScene();
 
-  const sceneData = setup(renderer, camera, scene);
-
-  const timer = createTimer();
-  (function renderLoop(now: number = 0) {
-    requestAnimationFrame(renderLoop);
-    const delta = tick(timer, now);
-    run(sceneData, delta);
-    renderScene(renderer, camera, scene);
-  })();
-}
-
-function setup(renderer: Renderer, _camera: Camera, scene: Scene): ThreeBasicCubeSceneData {
   const cubeGeometry = createCubeGeometry(renderer);
   const redBasicMaterial = createBasicMaterial(renderer, vec4.fromValues(1.0, 0.0, 0.0, 1.0));
   const cubeMesh1 = createMesh(cubeGeometry, redBasicMaterial);
@@ -53,20 +35,17 @@ function setup(renderer: Renderer, _camera: Camera, scene: Scene): ThreeBasicCub
 
   const deltaRotation = vec3.create();
 
-  return {
-    deltaRotation,
-    cubeRotation1,
-    cubeRotation2,
-    cubeRotation3,
-  };
-}
-
-function run(data: ThreeBasicCubeSceneData, delta: number): void {
-  const { deltaRotation, cubeRotation1, cubeRotation2, cubeRotation3 } = data;
-  vec3.set(deltaRotation, delta, 1.5 * delta, 0);
-  vec3.add(cubeRotation1, cubeRotation1, deltaRotation);
-  vec3.scale(deltaRotation, deltaRotation, -1);
-  vec3.add(cubeRotation2, cubeRotation2, deltaRotation);
-  vec3.set(deltaRotation, 0, delta, 1.5 * delta);
-  vec3.add(cubeRotation3, cubeRotation3, deltaRotation);
+  const timer = createTimer();
+  (function renderLoop(now: number = 0) {
+    requestAnimationFrame(renderLoop);
+    const delta = tick(timer, now);
+    vec3.set(deltaRotation, delta, 1.5 * delta, 0);
+    vec3.add(cubeRotation1, cubeRotation1, deltaRotation);
+    vec3.scale(deltaRotation, deltaRotation, -1);
+    vec3.add(cubeRotation2, cubeRotation2, deltaRotation);
+    vec3.set(deltaRotation, 0, delta, 1.5 * delta);
+    vec3.add(cubeRotation3, cubeRotation3, deltaRotation);
+    renderScene(renderer, camera, scene);
+    updateOrbitalControls(camera);
+  })();
 }
