@@ -1,4 +1,4 @@
-import { vec4 } from 'gl-matrix';
+import { vec3, vec4 } from 'gl-matrix';
 import { createCamera } from './camera';
 import { createCubeGeometry } from './geometries/cube-geometry';
 import { createBasicMaterial } from './materials/basic-material';
@@ -16,7 +16,8 @@ async function main(): Promise<void> {
   const basicCubeMesh = createMesh(cubeGeometry, basicMaterial);
   addToScene(scene, basicCubeMesh);
 
-  // TODO: Figure out how to rotate the cube
+  const cubeRotation = basicCubeMesh.transform.rotation;
+  const deltaRotation = vec3.create();
 
   let then = Date.now();
   (function renderLoop() {
@@ -25,6 +26,9 @@ async function main(): Promise<void> {
     const now = Date.now();
     const delta = (now - then) * 0.001;
     then = now;
+
+    vec3.set(deltaRotation, delta, 1.5 * delta, 0);
+    vec3.add(cubeRotation, cubeRotation, deltaRotation);
 
     renderScene(renderer, camera, scene);
   })();
