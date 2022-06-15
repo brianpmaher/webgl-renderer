@@ -1,4 +1,4 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4 } from 'gl-matrix';
 import { Camera, updateAspectRatio, updateProjectionMatrix } from './camera';
 import { Scene } from './scene';
 import { Shader } from './shader';
@@ -52,20 +52,11 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
   updateAspectRatio(camera, canvas);
   updateProjectionMatrix(camera);
 
-  // TODO: Move to a material bind function
-  const mvpMatrix = mat4.create();
-
   for (let i = 0; i < numMeshes; i++) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const mesh = meshes[i];
     const { geometry, material } = mesh;
     const { shader } = material;
-
-    // TODO: Move to mesh or something
-    const modelMatrix = mat4.create();
-    mat4.translate(modelMatrix, modelMatrix, vec3.fromValues(2, 0, 0));
-    mat4.rotate(modelMatrix, modelMatrix, Math.PI / 4, vec3.fromValues(1, 1, 0));
-    mat4.scale(modelMatrix, modelMatrix, vec3.fromValues(1, 1, 2));
 
     // TODO: Cleanup garbage collection invocation here and move to camera
     mat4.identity(viewMatrix);
@@ -74,8 +65,6 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
     gl.useProgram(shader.program);
 
     material.bindBuffers(renderer, camera, mesh);
-
-    // TODO: Move these to a material bind function
 
     gl.drawElements(gl.TRIANGLES, geometry.vertexCount, gl.UNSIGNED_SHORT, 0);
   }
