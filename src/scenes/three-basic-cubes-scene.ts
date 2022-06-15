@@ -17,6 +17,7 @@ export interface ThreeBasicCubeSceneData {
 export async function createThreeBasicCubesScene(canvasSelector: string): Promise<void> {
   const renderer = await createRenderer(canvasSelector);
   const camera = createCamera(renderer);
+  vec3.set(camera.transform.position, 0, 0, -15);
   const scene = createScene();
 
   const sceneData = setup(renderer, camera, scene);

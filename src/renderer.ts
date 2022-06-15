@@ -1,5 +1,4 @@
-import { mat4 } from 'gl-matrix';
-import { Camera, updateAspectRatio, updateProjectionMatrix } from './camera';
+import { Camera, updateAspectRatio, updateProjectionMatrix, updateViewMatrix } from './camera';
 import { Scene } from './scene';
 import { Shader } from './shader';
 import { BASIC_SHADER_NAME, loadBasicShader } from './shaders/basic/basic-shader';
@@ -50,7 +49,6 @@ export async function createRenderer(canvasSelector: string): Promise<Renderer> 
 export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): void {
   const { gl } = renderer;
   const { canvas } = gl;
-  const { viewMatrix } = camera;
   const { meshes } = scene;
   const numMeshes = meshes.length;
 
@@ -58,15 +56,12 @@ export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): v
 
   updateAspectRatio(camera, canvas);
   updateProjectionMatrix(camera);
+  updateViewMatrix(camera);
 
   for (let i = 0; i < numMeshes; i++) {
     const mesh = meshes[i];
     const { geometry, material } = mesh;
     const { shader } = material;
-
-    // TODO: Cleanup garbage collection invocation here and move to camera
-    mat4.identity(viewMatrix);
-    mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -15.0]);
 
     gl.useProgram(shader.program);
 

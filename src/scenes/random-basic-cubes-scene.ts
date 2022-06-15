@@ -9,6 +9,7 @@ import { addMesh, createScene, Scene } from '../scene';
 export async function createRandomBasicCubesScene(canvasSelector: string): Promise<void> {
   const renderer = await createRenderer(canvasSelector);
   const camera = createCamera(renderer);
+  vec3.set(camera.transform.position, 0, 0, -15);
   const scene = createScene();
 
   setup(renderer, camera, scene);
