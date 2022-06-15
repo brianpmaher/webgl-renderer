@@ -1,5 +1,5 @@
 import { mat4 } from 'gl-matrix';
-import { PI_OVER_TWO } from './math';
+import { PI_OVER_FOUR } from './math';
 import { Renderer } from './renderer';
 
 export interface Camera {
@@ -15,7 +15,7 @@ export function createCamera(renderer: Renderer): Camera {
   const { gl } = renderer;
 
   return {
-    fov: PI_OVER_TWO,
+    fov: PI_OVER_FOUR,
     aspect: gl.canvas.clientWidth / gl.canvas.clientHeight,
     zNear: 0.1,
     zFar: 100.0,

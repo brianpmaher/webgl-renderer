@@ -11,11 +11,16 @@ export interface Renderer {
   };
 }
 
-export async function createRenderer(canvasId: string): Promise<Renderer> {
-  const canvas = document.querySelector<HTMLCanvasElement>(canvasId)!;
+export async function createRenderer(canvasSelector: string): Promise<Renderer> {
+  const canvas = document.querySelector<HTMLCanvasElement>(canvasSelector)!;
 
-  canvas.height = canvas.clientHeight;
-  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+
+  window.addEventListener('resize', () => {
+    canvas.height = canvas.clientHeight * devicePixelRatio;
+    canvas.width = canvas.clientWidth * devicePixelRatio;
+  });
 
   const gl = canvas.getContext('webgl2')!;
 
@@ -45,22 +50,23 @@ export async function createRenderer(canvasId: string): Promise<Renderer> {
 export function renderScene(renderer: Renderer, camera: Camera, scene: Scene): void {
   const { gl } = renderer;
   const { canvas } = gl;
-  const { viewMatrix, projectionMatrix } = camera;
+  const { viewMatrix } = camera;
   const { meshes } = scene;
   const numMeshes = meshes.length;
+
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   updateAspectRatio(camera, canvas);
   updateProjectionMatrix(camera);
 
   for (let i = 0; i < numMeshes; i++) {
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const mesh = meshes[i];
     const { geometry, material } = mesh;
     const { shader } = material;
 
     // TODO: Cleanup garbage collection invocation here and move to camera
     mat4.identity(viewMatrix);
-    mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -6.0]);
+    mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -15.0]);
 
     gl.useProgram(shader.program);
 
