@@ -70,20 +70,22 @@ export function updateViewMatrix(camera: Camera): void {
   mat4.translate(viewMatrix, viewMatrix, camera.transform.position);
 }
 
-export function setupOrbitalControls(camera: Camera): void {
+export function setupOrbitalControls(renderer: Renderer, camera: Camera): void {
   const LEFT_MOUSE_BUTTON = 0;
   // const MIDDLE_MOUSE_BUTTON = 1;
   const RIGHT_MOUSE_BUTTON = 2;
   let isPanning = false;
   let isRotating = false;
 
+  const { canvas } = renderer.gl;
+
   // stop context menu and middle mouse lock
-  window.addEventListener('contextmenu', e => {
+  canvas.addEventListener('contextmenu', e => {
     e.preventDefault();
     e.stopPropagation();
   });
 
-  window.addEventListener('mousedown', event => {
+  canvas.addEventListener('mousedown', event => {
     event.preventDefault();
 
     switch (event.button) {
@@ -96,7 +98,7 @@ export function setupOrbitalControls(camera: Camera): void {
     }
   });
 
-  window.addEventListener('mouseup', event => {
+  canvas.addEventListener('mouseup', event => {
     switch (event.button) {
       case LEFT_MOUSE_BUTTON:
         isPanning = false;
@@ -110,17 +112,25 @@ export function setupOrbitalControls(camera: Camera): void {
   });
 
   let mouseMoveTimeout: number;
-  window.addEventListener('mousemove', event => {
+  const handleMouseMoveTimeout = () => {
+    vec2.zero(camera.controlData.deltaPan);
+    vec2.zero(camera.controlData.deltaRotate);
+  };
+  canvas.addEventListener('mousemove', event => {
     if (mouseMoveTimeout) clearTimeout(mouseMoveTimeout);
-    mouseMoveTimeout = setTimeout(() => {
-      vec2.zero(camera.controlData.deltaPan);
-      vec2.zero(camera.controlData.deltaRotate);
-    }, 10);
-    if (isPanning) vec2.set(camera.controlData.deltaPan, event.movementX, event.movementY);
+
+    const { deltaPan, deltaRotate } = camera.controlData;
+
+    mouseMoveTimeout = setTimeout(handleMouseMoveTimeout, 1);
+
+    if (isPanning) {
+      vec2.set(deltaPan, event.movementX, event.movementY);
+      vec2.scale(deltaPan, deltaPan, 0.1);
+    }
     if (isRotating) vec2.set(camera.controlData.deltaRotate, event.movementX, event.movementY);
   });
 
-  window.addEventListener('wheel', event => {
+  canvas.addEventListener('wheel', event => {
     camera.controlData.deltaZoom = event.deltaY;
   });
 }
