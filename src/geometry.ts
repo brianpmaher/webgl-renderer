@@ -1,6 +1,7 @@
 export interface Geometry {
   vertexCount: number;
   positionBuffer: WebGLBuffer;
+  normalBuffer: WebGLBuffer;
   indexBuffer: WebGLBuffer;
 }
 

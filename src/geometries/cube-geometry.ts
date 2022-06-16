@@ -46,6 +46,47 @@ export function createCubeGeometry(renderer: Renderer): Geometry {
   const positionBuffer = initArrayBuffer(gl, vertexPositions);
 
   // prettier-ignore
+  const vertexNormals = new Float32Array([
+    // Front
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+     0.0,  0.0,  1.0,
+
+    // Back
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+     0.0,  0.0, -1.0,
+
+    // Top
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+     0.0,  1.0,  0.0,
+
+    // Bottom
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+     0.0, -1.0,  0.0,
+
+    // Right
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+     1.0,  0.0,  0.0,
+
+    // Left
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0,
+    -1.0,  0.0,  0.0
+  ]);
+
+  const normalBuffer = initArrayBuffer(gl, vertexNormals);
+
+  // prettier-ignore
   const indices = new Uint16Array([
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
@@ -60,6 +101,7 @@ export function createCubeGeometry(renderer: Renderer): Geometry {
   return {
     vertexCount: indices.length,
     positionBuffer,
+    normalBuffer,
     indexBuffer,
   };
 }

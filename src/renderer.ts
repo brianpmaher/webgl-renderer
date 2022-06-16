@@ -1,7 +1,9 @@
+import { vec4 } from 'gl-matrix';
 import { Camera, updateAspectRatio, updateProjectionMatrix, updateViewMatrix } from './camera';
 import { Scene } from './scene';
 import { Shader } from './shader';
 import { BASIC_SHADER_NAME, loadBasicShader } from './shaders/basic/basic-shader';
+import { loadNormalShader, NORMAL_SHADER_NAME } from './shaders/normal/normal-shader';
 
 export interface Renderer {
   gl: WebGL2RenderingContext;
@@ -10,7 +12,10 @@ export interface Renderer {
   };
 }
 
-export async function createRenderer(canvasSelector: string): Promise<Renderer> {
+export async function createRenderer(
+  canvasSelector: string,
+  clearColor: vec4 = vec4.fromValues(0.0, 0.0, 0.0, 1.0)
+): Promise<Renderer> {
   const canvas = document.querySelector<HTMLCanvasElement>(canvasSelector)!;
 
   canvas.height = canvas.clientHeight * devicePixelRatio;
@@ -29,15 +34,19 @@ export async function createRenderer(canvasSelector: string): Promise<Renderer> 
     throw new Error(message);
   }
 
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
   gl.clearDepth(1.0);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
-  const [basicShader] = await Promise.all([loadBasicShader(gl)]);
+  const [basicShader, normalShader] = await Promise.all([
+    loadBasicShader(gl),
+    loadNormalShader(gl),
+  ]);
 
   const shaders = {
     [BASIC_SHADER_NAME]: basicShader,
+    [NORMAL_SHADER_NAME]: normalShader,
   };
 
   return {
